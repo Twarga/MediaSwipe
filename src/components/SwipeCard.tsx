@@ -24,36 +24,35 @@ function SwipeableCard({
 }) {
   const x = useMotionValue(0)
   const rotate = useTransform(x, [-300, 0, 300], [-12, 0, 12])
-
   const rightOpacity = useTransform(x, [0, 100], [0, 1])
   const leftOpacity = useTransform(x, [-100, 0], [1, 0])
 
-  const [exitX, setExitX] = useState<number | null>(null)
+  const [exitDir, setExitDir] = useState<'left' | 'right' | null>(null)
 
   const handleDragEnd = useCallback(
     (_: unknown, info: { offset: { x: number } }) => {
-      if (info.offset.x > SWIPE_THRESHOLD) {
-        setExitX(500)
-      } else if (info.offset.x < -SWIPE_THRESHOLD) {
-        setExitX(-500)
-      } else {
-        x.set(0)
-      }
+      if (info.offset.x > SWIPE_THRESHOLD) setExitDir('right')
+      else if (info.offset.x < -SWIPE_THRESHOLD) setExitDir('left')
+      else x.set(0)
     },
     [x]
   )
 
-  if (exitX !== null) {
+  const handleExitComplete = useCallback(() => {
+    if (exitDir === 'right') onSwipeRight()
+    else onSwipeLeft()
+    onExitComplete()
+  }, [exitDir, onSwipeRight, onSwipeLeft, onExitComplete])
+
+  if (exitDir) {
+    const exitX = exitDir === 'right' ? 500 : -500
+    const exitRotate = exitDir === 'right' ? 12 : -12
     return (
       <motion.div
-        initial={false}
-        animate={{ x: exitX, rotate: exitX > 0 ? 12 : -12, opacity: 0 }}
-        transition={{ type: 'spring', stiffness: 300, damping: 25 }}
-        onAnimationComplete={() => {
-          if (exitX > 0) onSwipeRight()
-          else onSwipeLeft()
-          onExitComplete()
-        }}
+        initial={{ x: x.get(), rotate: rotate.get(), opacity: 1 }}
+        animate={{ x: exitX, rotate: exitRotate, opacity: 0 }}
+        transition={{ type: 'spring', stiffness: 300, damping: 25, mass: 1 }}
+        onAnimationComplete={handleExitComplete}
         className="absolute inset-0"
       >
         <MediaCardContent item={item} />
@@ -65,7 +64,7 @@ function SwipeableCard({
     <motion.div
       drag="x"
       dragConstraints={{ left: 0, right: 0 }}
-      dragElastic={0.9}
+      dragElastic={0.7}
       style={{ x, rotate }}
       onDragEnd={handleDragEnd}
       whileTap={{ cursor: 'grabbing' }}
@@ -75,18 +74,18 @@ function SwipeableCard({
 
       <motion.div
         style={{ opacity: rightOpacity }}
-        className="absolute top-8 left-8 z-10"
+        className="absolute top-8 left-8 z-10 pointer-events-none"
       >
-        <span className="text-watched text-4xl font-black border-4 border-watched rounded-xl px-4 py-1 rotate-[-8deg] bg-black/30 backdrop-blur-sm">
+        <span className="text-watched text-4xl font-black border-4 border-watched rounded-xl px-4 py-1 -rotate-8 bg-black/30 backdrop-blur-sm block">
           WATCHED
         </span>
       </motion.div>
 
       <motion.div
         style={{ opacity: leftOpacity }}
-        className="absolute top-8 right-8 z-10"
+        className="absolute top-8 right-8 z-10 pointer-events-none"
       >
-        <span className="text-skipped text-4xl font-black border-4 border-skipped rounded-xl px-4 py-1 rotate-[8deg] bg-black/30 backdrop-blur-sm">
+        <span className="text-skipped text-4xl font-black border-4 border-skipped rounded-xl px-4 py-1 rotate-8 bg-black/30 backdrop-blur-sm block">
           SKIP
         </span>
       </motion.div>
@@ -106,41 +105,40 @@ export default function SwipeCard({
 
   const handleSwipeDone = () => setCurrentIndex((i) => i + 1)
 
+  const stack = visibleItems.slice().reverse()
+
   return (
     <div className="relative w-full max-w-sm mx-auto aspect-[3/4]">
-      {visibleItems
-        .slice()
-        .reverse()
-        .map((item, i) => {
-          const isFront = i === visibleItems.length - 1
-          const scale = 1 - (visibleItems.length - 1 - i) * 0.05
-          const y = (visibleItems.length - 1 - i) * 8
+      {stack.map((item, i) => {
+        const isFront = i === stack.length - 1
+        const depth = stack.length - 1 - i
+        const scale = 1 - depth * 0.05
+        const y = depth * 8
 
-          return (
-            <div
-              key={item.id}
-              className="absolute inset-0"
-              style={{
-                transform: isFront ? undefined : `scale(${scale}) translateY(${y}px)`,
-                zIndex: i,
-                pointerEvents: isFront ? 'auto' : 'none',
-              }}
-            >
-              {isFront ? (
-                <SwipeableCard
-                  item={item}
-                  onSwipeLeft={() => onSwipeLeft(item)}
-                  onSwipeRight={() => onSwipeRight(item)}
-                  onExitComplete={handleSwipeDone}
-                />
-              ) : (
-                <div className="absolute inset-0 rounded-2xl overflow-hidden">
-                  <MediaCardContent item={item} />
-                </div>
-              )}
-            </div>
-          )
-        })}
+        return (
+          <div
+            key={item.id}
+            className="absolute inset-0"
+            style={{ zIndex: i, pointerEvents: isFront ? 'auto' : 'none' }}
+          >
+            {isFront ? (
+              <SwipeableCard
+                item={item}
+                onSwipeLeft={() => onSwipeLeft(item)}
+                onSwipeRight={() => onSwipeRight(item)}
+                onExitComplete={handleSwipeDone}
+              />
+            ) : (
+              <div
+                className="absolute inset-0 rounded-2xl overflow-hidden"
+                style={{ transform: `scale(${scale}) translateY(${y}px)` }}
+              >
+                <MediaCardContent item={item} />
+              </div>
+            )}
+          </div>
+        )
+      })}
     </div>
   )
 }
