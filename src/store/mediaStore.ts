@@ -39,17 +39,10 @@ export const useMediaStore = create<MediaStore>()(
 
       swipeWatched: (item) => {
         const state = get()
+        const category = item.type === 'book' ? 'books' : item.type === 'tvshow' ? 'tvshows' : 'movies'
         set({
           swipedIds: [...state.swipedIds, item.id],
-          watched: {
-            ...state.watched,
-            [item.type === 'book' ? 'books' : item.type === 'tvshow' ? 'tvshows' : 'movies']:
-              [...state.watched[item.type === 'book' ? 'books' : item.type === 'tvshow' ? 'tvshows' : 'movies'], item],
-          },
-          queue: {
-            ...state.queue,
-            [state.currentCategory]: state.queue[state.currentCategory].slice(1),
-          },
+          watched: { ...state.watched, [category]: [...state.watched[category], item] },
         })
       },
 
@@ -58,10 +51,6 @@ export const useMediaStore = create<MediaStore>()(
         set({
           swipedIds: [...state.swipedIds, item.id],
           skipped: [...state.skipped, item],
-          queue: {
-            ...state.queue,
-            [state.currentCategory]: state.queue[state.currentCategory].slice(1),
-          },
         })
       },
 
@@ -76,6 +65,8 @@ export const useMediaStore = create<MediaStore>()(
       },
 
       loadMore: async (category) => {
+        const state = get()
+        if (state.loading) return
         set({ loading: true, error: null })
         try {
           let results: MediaItem[] = []
@@ -83,11 +74,13 @@ export const useMediaStore = create<MediaStore>()(
           else if (category === 'tvshows') results = await getPopularShows()
           else results = await getPopularBooks()
 
-          const state = get()
-          const filtered = results.filter((item) => !state.swipedIds.includes(item.id))
+          const fresh = get()
+          const filtered = results.filter((item) => !fresh.swipedIds.includes(item.id))
+          const added = filtered.length
           set({
-            queue: { ...state.queue, [category]: [...state.queue[category], ...filtered] },
+            queue: { ...fresh.queue, [category]: [...fresh.queue[category], ...filtered] },
             loading: false,
+            error: added === 0 ? 'No more items found. Try another category.' : null,
           })
         } catch {
           set({ error: 'Failed to load media. Check your connection.', loading: false })
