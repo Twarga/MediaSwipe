@@ -1,4 +1,5 @@
 import type { MediaItem } from '../types/media'
+import { safeImageUrl } from '../lib/utils'
 
 const BASE_URL = 'https://imdb.iamidiotareyoutoo.com'
 
@@ -11,12 +12,12 @@ export async function searchMovies(query: string): Promise<MediaItem[]> {
       id: String(item.id ?? ''),
       title: String(item.name ?? item.title ?? 'Unknown'),
       type: 'movie' as const,
-      posterUrl: item.image ? String(item.image) : '',
+      posterUrl: safeImageUrl(String(item.image ?? '')),
       year: Number(item.year ?? item['@year'] ?? 0),
       rating: Number(item.rating ?? item['@rating'] ?? 0),
       overview: String(item.description ?? item['@plot'] ?? ''),
       genres: [],
-    })).filter((m: MediaItem) => m.id)
+    })).filter((m: MediaItem) => m.id && m.title !== 'Unknown')
   } catch {
     return []
   }

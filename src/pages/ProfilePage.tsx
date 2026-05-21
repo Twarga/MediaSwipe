@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
-import { motion, useSpring, useInView } from 'motion/react'
+import { motion, AnimatePresence, useSpring, useInView } from 'motion/react'
 import { Film, Tv, BookOpen, Trophy, Heart, ChevronDown, ChevronRight } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { useMediaStore } from '../store/mediaStore'
@@ -58,7 +58,8 @@ function HistorySection({
         </div>
         {open ? <ChevronDown size={16} className="text-gray-500" /> : <ChevronRight size={16} className="text-gray-500" />}
       </button>
-      {open && (
+      <AnimatePresence>
+        {open && (
         <motion.div
           initial={{ height: 0, opacity: 0 }}
           animate={{ height: 'auto', opacity: 1 }}
@@ -90,6 +91,7 @@ function HistorySection({
           )}
         </motion.div>
       )}
+    </AnimatePresence>
     </div>
   )
 }

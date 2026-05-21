@@ -8,14 +8,6 @@ import ActionButtons from '../components/ActionButtons'
 import EmptyState from '../components/EmptyState'
 import type { MediaItem, CategoryType } from '../types/media'
 
-const categoryWatchedKey: Record<CategoryType, keyof typeof watchedInit> = {
-  movies: 'movies',
-  tvshows: 'tvshows',
-  books: 'books',
-}
-
-const watchedInit = { movies: 0, tvshows: 0, books: 0 }
-
 function SwipePage() {
   const {
     currentCategory,
@@ -32,7 +24,6 @@ function SwipePage() {
   } = useMediaStore()
 
   const [showConfetti, setShowConfetti] = useState(false)
-  const prevHadItems = useRef(true)
   const hasShownConfetti = useRef<Record<string, boolean>>({})
 
   const items = queue[currentCategory]
@@ -57,10 +48,6 @@ function SwipePage() {
     }
     prevComplete.current = isComplete
   }, [isComplete, currentCategory])
-
-  useEffect(() => {
-    prevHadItems.current = items.length > 0
-  }, [items.length])
 
   const handleSwipeRight = useCallback(
     (item: MediaItem) => swipeWatched(item),
@@ -94,7 +81,7 @@ function SwipePage() {
     [setCategory, queue, loadMore]
   )
 
-  const watchedCountThisCategory = watched[categoryWatchedKey[currentCategory]].length
+  const watchedCountThisCategory = watched[currentCategory].length
 
   return (
     <div className="flex flex-col flex-1">
@@ -142,6 +129,7 @@ function SwipePage() {
         ) : items.length > 0 ? (
           <div className="w-full max-w-sm mx-auto">
             <SwipeCard
+              key={currentCategory}
               items={items}
               onSwipeLeft={handleSwipeLeft}
               onSwipeRight={handleSwipeRight}

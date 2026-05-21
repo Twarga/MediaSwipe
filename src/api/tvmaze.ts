@@ -1,4 +1,5 @@
 import type { MediaItem } from '../types/media'
+import { safeImageUrl } from '../lib/utils'
 
 const BASE_URL = 'https://api.tvmaze.com'
 
@@ -18,13 +19,13 @@ export async function searchShows(query: string): Promise<MediaItem[]> {
         id: String(show.id ?? ''),
         title: String(show.name ?? 'Unknown'),
         type: 'tvshow' as const,
-        posterUrl: image?.original ?? image?.medium ?? '',
+        posterUrl: safeImageUrl(image?.original ?? image?.medium ?? ''),
         year: show.premiered ? Number(String(show.premiered).slice(0, 4)) : 0,
         rating: Number((show.rating as Record<string, number>)?.average ?? 0),
         overview: stripHtml(String(show.summary ?? '')),
         genres: (show.genres as string[]) ?? [],
       }
-    }).filter((m: MediaItem) => m.id)
+    }).filter((m: MediaItem) => m.id && m.title !== 'Unknown')
   } catch {
     return []
   }
@@ -41,13 +42,13 @@ export async function getPopularShows(): Promise<MediaItem[]> {
         id: String(show.id ?? ''),
         title: String(show.name ?? 'Unknown'),
         type: 'tvshow' as const,
-        posterUrl: image?.original ?? image?.medium ?? '',
+        posterUrl: safeImageUrl(image?.original ?? image?.medium ?? ''),
         year: show.premiered ? Number(String(show.premiered).slice(0, 4)) : 0,
         rating: Number((show.rating as Record<string, number>)?.average ?? 0),
         overview: stripHtml(String(show.summary ?? '')),
         genres: (show.genres as string[]) ?? [],
       }
-    }).filter((m: MediaItem) => m.id)
+    }).filter((m: MediaItem) => m.id && m.title !== 'Unknown')
   } catch {
     return []
   }
